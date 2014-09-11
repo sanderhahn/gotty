@@ -47,11 +47,11 @@ func main() {
 		syscall.SIGQUIT)
 
 	go func() {
-		<-c
-		// sig := <-c
+		sig := <-c
 		// fmt.Printf("%v", sig)
 		stty(restore)
-		os.Exit(1)
+		signal.Stop(c)
+		syscall.Kill(os.Getpid(), sig.(syscall.Signal))
 	}()
 
 	// Put the tty in raw mode
