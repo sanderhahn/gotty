@@ -34,7 +34,7 @@ func main() {
 	restore := stty("-g")
 	defer stty(restore)
 
-	// Restore tty on kill/interupt signals
+	// Restore tty on kill/interrupt signals
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c,
