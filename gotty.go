@@ -5,34 +5,34 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
 	"os/signal"
-	"strings"
 	"syscall"
-)
 
-func stty(args ...string) string {
-	// fmt.Printf("%v\n\r", args)
-	args = append([]string{"-f", "/dev/tty"}, args...)
-	out, err := exec.Command("stty", args...).Output()
-	if err != nil {
-		log.Fatal(err)
-	}
-	return string(out)
-}
+	"github.com/kylelemons/goat/termios"
+)
 
 var CTRL_C = []byte{3}
 var CTRL_D = []byte{4}
 var CTRL_Z = []byte{0x1a}
 
 func main() {
-	size := stty("size")
-	fmt.Printf("Console size: %s\n", strings.Trim(size, "\n"))
 
-	// Restore stty on end
+	tio, err := termios.NewTermSettings(syscall.Stdin)
+	defer tio.Reset()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	restore := stty("-g")
-	defer stty(restore)
+	width, height, err := tio.GetSize()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("Console size: %dx%d\n", width, height)
+
+	tio.Raw()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Restore tty on kill/interrupt signals
 
@@ -49,14 +49,10 @@ func main() {
 	go func() {
 		sig := <-c
 		// fmt.Printf("%v", sig)
-		stty(restore)
+		tio.Reset()
 		signal.Stop(c)
 		syscall.Kill(os.Getpid(), sig.(syscall.Signal))
 	}()
-
-	// Put the tty in raw mode
-
-	stty("raw")
 
 	var b []byte = make([]byte, 5)
 	for {
